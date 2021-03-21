@@ -18,6 +18,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
   final jawabanFocus = FocusNode();
   final kataKunciFocus = FocusNode(); //length na misal 3
   var kKsplit = [];
+  List<MatchPattern> matchPattern = [];
 
   List<TextSpan> result = [];
   //indeks hasil pencarian, misal 101, loop ker di tampil = 101, 102, 103
@@ -35,7 +36,8 @@ class _MyCustomFormState extends State<MyCustomForm> {
 
   List<int> badCharacterHeuristic(String str) {
     int noOfCharacter = 20000;
-    List<int> badChar = new List.filled(noOfCharacter.bitLength, noOfCharacter);
+    List<int> badChar = List.filled(20000, noOfCharacter);
+    //List<int> badChar = List<int>(noOfCharacter);
     int i;
 
     for (i = 0; i < noOfCharacter; i++) {
@@ -49,57 +51,76 @@ class _MyCustomFormState extends State<MyCustomForm> {
     return badChar;
   }
 
-  Future<void> search(
-      String text, String pattern, List<MatchPattern> matchPattern) async {
-    int m = pattern.length + 1;
-    int n = text.length + 1;
-    print("Len $pattern = $m");
+  Future<void> search(String text, String pattern) async {
+    int m = pattern.length;
+    int n = text.length;
     List<int> badchar = badCharacterHeuristic(pattern);
 
     int s = 0;
+    int isMeetFirst = 0;
+
     while (s <= (n - m)) {
       int j = m - 1;
       while (j >= 0 && pattern[j] == text[s + j]) j--;
       if (j < 0) {
-        print("Patterns occur at shift = $s");
-
         matchPattern.add(MatchPattern(s, m));
         s += (s + m < n) ? m - badchar[text.codeUnitAt(s + m)] : 1;
+
+        isMeetFirst = 1;
       } else {
         s += maxOfAnB(1, j - badchar[text.codeUnitAt(s + j)]);
+        if (isMeetFirst == 1) {
+          break;
+        }
       }
     }
   }
 
-  void submit(
-      String dosen, String siswa, List<MatchPattern> matchPattern, var split) {
-    split = dosen.split('؛');
+  void submit(String dosen, String siswa) {
+    var split = dosen.split('؛');
     if (split.length > 1) {
       Future.forEach(split, (element) async {
-        return await search(siswa, element, matchPattern);
-      }).then((value) => Future.delayed(Duration(seconds: 1))).whenComplete(() {
-        setState(() {
-          isLoading = false;
-          Navigator.of(context).pushNamed(ResultPage.routeName,
-              arguments: ScreenArguments(matchPattern, split, siswa, dosen));
-        });
-      });
+        return await search(siswa, element);
+      }).then((value) {
+        Future.delayed(Duration(seconds: 1));
+      }).whenComplete(
+        () {
+          setState(
+            () {
+              isLoading = false;
+              var item = [
+                ...{...matchPattern}
+              ];
+              item.forEach((element) {
+                print('${element.startIndex} , ${element.length}');
+              });
+              Navigator.of(context).pushNamed(ResultPage.routeName,
+                  arguments:
+                      ScreenArguments(matchPattern, split, siswa, dosen));
+            },
+          );
+        },
+      );
     } else {
-      search(siswa, dosen, matchPattern).then((value) async {
+      search(siswa, dosen).then((value) async {
         return await Future.delayed(Duration(seconds: 1));
       }).whenComplete(() {
         setState(() {
           isLoading = false;
+          var item = matchPattern.toSet().toList();
+          item.forEach((element) {
+            print(element);
+          });
           Navigator.of(context).pushNamed(ResultPage.routeName,
-              arguments: ScreenArguments(matchPattern, split, siswa, dosen));
+              arguments: ScreenArguments(item, split, siswa, dosen));
         });
       });
     }
   }
 
   storeDosenSiswa() {
-    List<MatchPattern> matchPattern = [];
-    var split;
+    matchPattern.clear();
+
     setState(() {
       isLoading = true;
       matchPattern.clear();
@@ -110,9 +131,9 @@ class _MyCustomFormState extends State<MyCustomForm> {
         .storeDosenSiswa(kataKunciController.text, jawabanController.text)
         .then((value) {
       if (value != false) {
-        print(value['siswa'][0]);
+        print(value['siswa']);
         print(value['dosen']);
-        submit(value['dosen'], value['siswa'][0], matchPattern, split);
+        submit(value['dosen'], value['siswa']);
       } else {
         setState(() {
           isLoading = false;
@@ -148,7 +169,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
                       labelText: 'Pertanyaan',
                     ),
                   ),
-                  SizedBox(height: 16),
+                  SizedBox(height: 5),
                   TextField(
                     controller: jawabanController,
                     focusNode: jawabanFocus,
@@ -160,7 +181,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
                       labelText: 'Jawaban',
                     ),
                   ),
-                  SizedBox(height: 16),
+                  SizedBox(height: 5),
                   TextField(
                     controller: kataKunciController,
                     focusNode: kataKunciFocus,
@@ -170,7 +191,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
                       labelText: 'Kata Kunci',
                     ),
                   ),
-                  SizedBox(height: 16),
+                  SizedBox(height: 5),
                   ButtonTheme(
                     minWidth: double.infinity,
                     padding: const EdgeInsets.all(16),

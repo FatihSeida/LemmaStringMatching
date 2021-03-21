@@ -155,8 +155,7 @@ class _CSVInputState extends State<CSVInput> {
 
   List<int> badCharacterHeuristic(String str) {
     int noOfCharacter = 20000;
-    List<int> badChar =
-        List<int>.filled(noOfCharacter.bitLength, noOfCharacter);
+    List<int> badChar = List<int>.filled(20000, noOfCharacter);
     int i;
 
     for (i = 0; i < noOfCharacter; i++) {

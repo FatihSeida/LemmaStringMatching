@@ -25,21 +25,22 @@ class _ResultPageState extends State<ResultPage> {
               : Center(
                   child: Directionality(
                     textDirection: TextDirection.ltr,
-                    child: Column(
-                      children: [
-                        Text(
-                            "${args.match.length} / ${args.split.length} match pattern"),
-                        Divider(),
-                        Text.rich(
-                          TextSpan(
-                            children: getResult(
-                                    args.match, args.jawaban, args.kataKunci)
-                                .toList(),
-                            style: TextStyle(fontSize: 20),
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: args.match.length > 0
+                        ? Column(
+                            children: [
+                              Text(
+                                  "${args.match.length} / ${args.split.length} match pattern"),
+                              Divider(),
+                              Text.rich(
+                                TextSpan(
+                                  children: getResult(
+                                      args.match, args.jawaban, args.kataKunci),
+                                  style: TextStyle(fontSize: 20),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text("Tidak ada kata kunci yang cocok"),
                   ),
                 ),
         ),
@@ -75,14 +76,14 @@ class _ResultPageState extends State<ResultPage> {
         i += found.length;
         // kata.removeRange(i, i + patlen);
       }
-      if (i < kata.length) {
+      if (i < split.length) {
         res.add(
-          TextSpan(text: kata[i]),
+          TextSpan(text: split[i]),
         );
         // i += patlen;
       }
     }
 
-    return res;
+    return res.toList();
   }
 }
